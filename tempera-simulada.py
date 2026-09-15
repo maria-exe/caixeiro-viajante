@@ -1,12 +1,12 @@
-import random, itertools, math
+import random, math
 from problema import Grafo
 
 class TemperaSimulada:
-    def __init__(self, grafo, temperatura_atual, taxa_resfriamento):
+    def __init__(self, grafo, temperatura_atual, taxa_resfriamento, temp_iteracao):
         self.matriz = grafo
         self.temperatura = temperatura_atual
         self.taxa_resfriamento = taxa_resfriamento
-
+        self.temp_iteracao = temp_iteracao
         self.custos = []
 
     def vizinhanca(self,  percurso): # equacao pronta!
@@ -15,7 +15,7 @@ class TemperaSimulada:
         index_i = random.randint(0, n-2)
         index_j = random.randint(index_i + 1, n-1)
 
-        if (index_i == 0) and (index_j == n -1):
+        if (index_i == 0) and (index_j == n - 1):
             index_j = n - 2
 
         cidade = percurso[index_i - 1]
@@ -31,14 +31,7 @@ class TemperaSimulada:
         return index_i, index_j, delta
 
     def calcula_custo(self, percurso): # equacao pronta!!!
-        custo = 0 
-        tam = len(percurso)
-
-        for i in range(tam - 1):
-            custo += self.matriz[percurso[i]][percurso[i+1]] 
-        custo += self.matriz[percurso[-1]][percurso[0]]
-
-        return custo
+        return sum(self.matriz[percurso[i-1]][percurso[i]] for i in range(len(percurso)))
 
     def executa_busca(self, limite):
         n = len(self.matriz)
@@ -50,10 +43,9 @@ class TemperaSimulada:
         melhor_custo = custo_atual
         
         temperatura = self.temperatura
-        iteracoes_por_temperatura = 100
 
         while (temperatura >= limite):
-            for _ in range(iteracoes_por_temperatura):
+            for _ in range(self.temp_iteracao):
                 i, j, delta = self.vizinhanca(percurso_atual)
 
                 if delta < 0 or random.random() < math.exp(-delta / temperatura):
@@ -65,9 +57,10 @@ class TemperaSimulada:
                         melhor_custo = custo_atual
 
             self.custos.append(melhor_custo)
-            temperatura = temperatura * self.taxa_resfriamento
+            temperatura *= self.taxa_resfriamento
 
-        return melhor_percurso, melhor_custo
+        custo_final = self.calcula_custo(melhor_percurso)
+        return melhor_percurso, custo_final
 
 def main():
     grafo = Grafo()
@@ -75,7 +68,7 @@ def main():
     grafo.popula_matriz()
     print(grafo.grafo)
 
-    tempera = TemperaSimulada(grafo.grafo, 100, 0.95)
+    tempera = TemperaSimulada(grafo.grafo, 100, 0.95, 50)
     rota = [0, 1, 2, 3, 4]
 
     for i in range(len(rota)):
@@ -87,9 +80,6 @@ def main():
     print(melhor_custo)
     print(melhor_percurso)
     print(len(tempera.custos))
+
 if __name__ == "__main__":
     main()
-
-
-
-
