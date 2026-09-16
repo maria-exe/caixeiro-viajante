@@ -1,6 +1,6 @@
-import random, itertools, math
+import random
 from problema import Grafo
-from collections import Counter
+
 
 class AlgoritmoGenetico:
     def __init__(self, grafo, tam_populacao, taxa_crossover, taxa_mutacao, geracoes, k):
@@ -10,39 +10,30 @@ class AlgoritmoGenetico:
         self.taxa_mutacao = taxa_mutacao
         self.geracoes = geracoes
         self.k = k
-
         self.custos = []
 
     def calcula_custo(self, percurso):
-        custo = 0 
+        custo = 0
         tam = len(percurso)
-
         for i in range(tam - 1):
-            custo += self.matriz[percurso[i]][percurso[i+1]] 
+            custo += self.matriz[percurso[i]][percurso[i + 1]]
         custo += self.matriz[percurso[-1]][percurso[0]]
         return custo
 
     def gera_populacao(self):
-        populacao = [] # lista de percursos diferentes para a matriz de cidades
         n = len(self.matriz)
-        
-        for i in range(self.tam_populacao):
-            percurso = random.sample(range(n), n)
-            populacao.append(percurso)
-    
-        return populacao
-    
-    def selecao(self, populacao):
-        selecionados = random.sample(populacao, self.k)
-        return min(selecionados, key=self.calcula_custo)
+        return [random.sample(range(n), n) for _ in range(self.tam_populacao)]
+
+    def selecao(self, populacao, custos):
+        indices = random.sample(range(len(populacao)), self.k)
+        melhor_indice = min(indices, key=lambda i: custos[i])
+        return populacao[melhor_indice]
 
     def mutacao(self, percurso):
         n = len(percurso)
         i, j = sorted(random.sample(range(n), 2))
         percurso_mutado = percurso.copy()
-        
-        # inversao 2opt
-        percurso_mutado[i:j+1] = reversed(percurso_mutado[i:j+1])
+        percurso_mutado[i:j + 1] = reversed(percurso_mutado[i:j + 1])
         return percurso_mutado
 
     def crossover_ox(self, p1, p2):
@@ -50,9 +41,8 @@ class AlgoritmoGenetico:
         i, j = sorted(random.sample(range(n), 2))
 
         filho = [None] * n
-        filho[i:j+1] = p1[i:j+1]
-
-        cidades_filho = set(filho[i:j+1])
+        filho[i:j + 1] = p1[i:j + 1]
+        cidades_filho = set(filho[i:j + 1])
 
         posicao = (j + 1) % n
         index_p2 = (j + 1) % n
@@ -64,22 +54,24 @@ class AlgoritmoGenetico:
                 cidades_filho.add(cidade)
                 posicao = (posicao + 1) % n
             index_p2 = (index_p2 + 1) % n
-    
+
         return filho
 
     def executa_busca(self):
         populacao = self.gera_populacao()
+        custos = [self.calcula_custo(ind) for ind in populacao]
 
-        melhor_percurso = min(populacao, key=self.calcula_custo)
-        melhor_custo = self.calcula_custo(melhor_percurso)
+        indice_melhor = custos.index(min(custos))
+        melhor_percurso = populacao[indice_melhor].copy()
+        melhor_custo = custos[indice_melhor]
         self.custos = []
 
         for _ in range(self.geracoes):
-            nova_populacao = [melhor_percurso.copy()]  # elitismo
+            nova_populacao = [melhor_percurso.copy()]
 
             while len(nova_populacao) < self.tam_populacao:
-                pai1 = self.selecao(populacao)
-                pai2 = self.selecao(populacao)
+                pai1 = self.selecao(populacao, custos)
+                pai2 = self.selecao(populacao, custos)
 
                 if random.random() < self.taxa_crossover:
                     filho = self.crossover_ox(pai1, pai2)
@@ -92,38 +84,18 @@ class AlgoritmoGenetico:
                 nova_populacao.append(filho)
 
             populacao = nova_populacao
+            custos = [self.calcula_custo(ind) for ind in populacao]
 
-            # encontra o melhor da geracao atual
-            melhor_geracao = min(populacao, key=self.calcula_custo)
-            custo = self.calcula_custo(melhor_geracao)
-            
+            indice_melhor = custos.index(min(custos))
+            custo = custos[indice_melhor]
             self.custos.append(custo)
 
             if custo < melhor_custo:
                 melhor_custo = custo
-                melhor_percurso = melhor_geracao.copy()
+                melhor_percurso = populacao[indice_melhor].copy()
 
         return melhor_percurso, melhor_custo
-      
-def main():
-    grafo = Grafo()
-    grafo.gera_vertices(50)
-    grafo.popula_matriz()
-
-    ag = AlgoritmoGenetico(
-        grafo=grafo.grafo,        # <- troca aqui: matriz gerada, não mais matriz_teste fixa
-        tam_populacao=100,
-        taxa_crossover=0.8,
-        taxa_mutacao=0.1,
-        geracoes=200,
-        k=5
-    )
-
-    melhor_percurso, melhor_custo = ag.executa_busca()
-    print("Melhor percurso:", melhor_percurso)
-    print("Melhor custo:", melhor_custo)
-    print("Histórico de custos (por geração):", ag.custos)
 
 
 if __name__ == "__main__":
-    main()
+    pass
